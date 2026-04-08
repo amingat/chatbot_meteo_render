@@ -1,49 +1,69 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi import HTTPException
+from fastapi import FastAPI, HTTPException
 import traceback
 
-from app.models import (
-    ChatRequest,
-    ChatResponse,
-    ClearMemoryRequest,
-    ClearMemoryResponse,
-    SessionListResponse,
-    SessionMessagesResponse,
-)
+from app.config import get_settings
+from app.models import ChatRequest, MemoryClearRequest
 from app.services.assistant import ClimateAssistantService
 
 
+settings = get_settings()
+assistant = ClimateAssistantService(settings)
+
 app = FastAPI(
-    title='Climate RAG Agent API',
-    version='1.1.0',
-    description='API pour un assistant RAG + Agent spécialisé météo / climat.',
+    title="Climate RAG Agent API",
+    version="1.0.0",
+    description="API FastAPI pour le chatbot météo/climat avec RAG, outils et mémoire.",
 )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=['*'],
-    allow_credentials=True,
-    allow_methods=['*'],
-    allow_headers=['*'],
-)
 
-assistant_service = ClimateAssistantService()
-
-
-@app.get('/health')
-def health() -> dict:
-    return {'status': 'ok'}
+@app.get("/")
+def root():
+    return {
+        "message": "API chatbot météo active",
+        "docs": "/docs",
+        "health": "/health",
+    }
 
 
-@app.get('/sessions', response_model=SessionListResponse)
-def list_sessions() -> SessionListResponse:
-    return assistant_service.list_sessions()
+@app.get("/health")
+def health():
+    return {"status": "ok"}
 
 
-@app.get('/sessions/{session_id}/messages', response_model=SessionMessagesResponse)
-def get_session_messages(session_id: str) -> SessionMessagesResponse:
-    return assistant_service.get_session_messages(session_id)
+@app.get("/sessions")
+def list_sessions():
+    try:
+        sessions = assistant.get_sessions()
+        return {"sessions": sessions}
+    except Exception as exc:
+        print("ERREUR /sessions:", repr(exc))
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.get("/sessions/{session_id}/messages")
+def get_session_messages(session_id: str):
+    try:
+        messages = assistant.get_session_messages(session_id)
+        return {"messages": messages}
+    except Exception as exc:
+        print("ERREUR /sessions/{session_id}/messages:", repr(exc))
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.post("/memory/clear")
+def clear_memory(payload: MemoryClearRequest):
+    try:
+        assistant.clear_session_memory(payload.session_id)
+        return {
+            "status": "ok",
+            "message": f"Mémoire effacée pour la session {payload.session_id}",
+        }
+    except Exception as exc:
+        print("ERREUR /memory/clear:", repr(exc))
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 @app.post("/chat")
@@ -54,9 +74,3 @@ def chat(payload: ChatRequest):
         print("ERREUR /chat:", repr(exc))
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(exc))
-
-
-@app.post('/memory/clear', response_model=ClearMemoryResponse)
-def clear_memory(payload: ClearMemoryRequest) -> ClearMemoryResponse:
-    assistant_service.clear_memory(payload.session_id)
-    return ClearMemoryResponse(session_id=payload.session_id, status='cleared')
