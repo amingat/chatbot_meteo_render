@@ -1,5 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi import HTTPException
+import traceback
 
 from app.models import (
     ChatRequest,
@@ -44,9 +46,14 @@ def get_session_messages(session_id: str) -> SessionMessagesResponse:
     return assistant_service.get_session_messages(session_id)
 
 
-@app.post('/chat', response_model=ChatResponse)
-def chat(payload: ChatRequest) -> ChatResponse:
-    return assistant_service.chat(session_id=payload.session_id, message=payload.message)
+@app.post("/chat")
+def chat(payload: ChatRequest):
+    try:
+        return assistant.chat(payload.session_id, payload.message)
+    except Exception as exc:
+        print("ERREUR /chat:", repr(exc))
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 @app.post('/memory/clear', response_model=ClearMemoryResponse)
