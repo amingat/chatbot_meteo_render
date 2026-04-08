@@ -155,16 +155,51 @@ if user_input:
         st.markdown(user_input)
 
     with st.chat_message('assistant'):
-        with st.spinner('Réponse en cours...'):
-            response = requests.post(
-                f'{api_url}/chat',
-                json={'session_id': st.session_state.session_id, 'message': user_input},
-                timeout=120,
-            )
-            response.raise_for_status()
-            payload = response.json()
+        try:
+            with st.spinner('Réponse en cours...'):
+                response = requests.post(
+                    f'{api_url}/chat',
+                    json={'session_id': st.session_state.session_id, 'message': user_input},
+                    timeout=120,
+                )
+                response.raise_for_status()
+                payload = response.json()
 
-        st.markdown(payload['answer'])
+            st.markdown(payload['answer'])
+            st.caption(f"Route : {payload['route']}")
+            if payload.get('used_tools'):
+                st.caption('Outils: ' + ', '.join(payload['used_tools']))
+            if payload.get('sources'):
+                with st.expander('Sources'):
+                    for source in payload['sources']:
+                        st.markdown(
+                            f"- **{source['source']}**" + (f" — page {source['page']}" if source.get('page') else '')
+                        )
+                        if source.get('excerpt'):
+                            st.write(source['excerpt'])
+
+            st.session_state.messages.append(
+                {
+                    'role': 'assistant',
+                    'content': payload['answer'],
+                    'route': payload['route'],
+                    'used_tools': payload.get('used_tools', []),
+                    'sources': payload.get('sources', []),
+                }
+            )
+
+        except Exception as exc:
+            error_message = f"Erreur lors de l'appel API : {exc}"
+            st.error(error_message)
+            st.session_state.messages.append(
+                {
+                    'role': 'assistant',
+                    'content': error_message,
+                    'route': 'error',
+                    'used_tools': [],
+                    'sources': [],
+                }
+            )
         st.caption(f"Route : {payload['route']}")
         if payload.get('used_tools'):
             st.caption('Outils: ' + ', '.join(payload['used_tools']))
