@@ -1,7 +1,6 @@
 [server]
-headless = true
-enableCORS = false
-enableXsrfProtection = false
+fileWatcherType = "none"
+folderWatchBlacklist = ["ui/__pycache__", "app/__pycache__", "storage/chroma", "storage/memory", ".git"]
 
 [client]
 showErrorDetails = "full"
