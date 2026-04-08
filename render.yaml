@@ -1,0 +1,36 @@
+services:
+  - type: web
+    name: climate-rag-agent-api
+    runtime: python
+    plan: starter
+    autoDeployTrigger: commit
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m uvicorn api.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    disk:
+      name: memory-disk
+      mountPath: /opt/render/project/src/storage/memory
+      sizeGB: 1
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: TAVILY_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-4o-mini
+      - key: OPENAI_EMBEDDING_MODEL
+        value: text-embedding-3-small
+      - key: DOCS_PATH
+        value: data/pdfs
+      - key: CHROMA_DIR
+        value: storage/chroma
+      - key: SQLITE_PATH
+        value: storage/memory/chat_history.db
+      - key: TODO_PATH
+        value: storage/memory/todo.json
+      - key: TOP_K
+        value: '4'
+      - key: RAG_SCORE_THRESHOLD
+        value: '0.2'
+      - key: PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION
+        value: python
