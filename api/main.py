@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 import traceback
 
 from app.config import get_settings
-from app.models import ChatRequest, MemoryClearRequest
+from app.models import ChatRequest, ClearMemoryRequest
 from app.services.assistant import ClimateAssistantService
 
 
@@ -53,7 +53,7 @@ def get_session_messages(session_id: str):
 
 
 @app.post("/memory/clear")
-def clear_memory(payload: MemoryClearRequest):
+def clear_memory(payload: ClearMemoryRequest):
     try:
         assistant.clear_session_memory(payload.session_id)
         return {
