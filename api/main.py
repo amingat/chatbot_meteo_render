@@ -64,9 +64,10 @@ def clear_memory(payload: ClearMemoryRequest):
 
 @app.post("/chat")
 def chat(payload: ChatRequest):
-    try:
-        return assistant.chat(payload.session_id, payload.message)
-    except Exception as exc:
-        print("ERREUR /chat:", repr(exc))
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(exc))
+    return {
+        "session_id": payload.session_id,
+        "route": "chat",
+        "answer": "test ok",
+        "sources": [],
+        "used_tools": [],
+    }
